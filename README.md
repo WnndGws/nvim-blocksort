@@ -13,9 +13,9 @@ This plugin identifies blocks of text starting with a line that matches a given 
 ```lua
 return {
   {
-    "wnndgws/block_sort",
+    "wnndgws/nvim-blocksort",
     config = function()
-      require("block_sort")
+      require("blocksort")
     end,
   }
 }

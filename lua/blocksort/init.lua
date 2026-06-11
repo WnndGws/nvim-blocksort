@@ -16,16 +16,25 @@ local function char_sort_key(c)
 end
 
 -- Compare two strings character-by-character using the custom sort order
-local function compare_strings(a, b)
+-- If reverse is true, inverts the comparison
+local function compare_strings(a, b, reverse)
 	local min_len = math.min(#a, #b)
 	for i = 1, min_len do
 		local ka = char_sort_key(a:sub(i, i))
 		local kb = char_sort_key(b:sub(i, i))
 		if ka ~= kb then
-			return ka < kb
+			if reverse then
+				return ka > kb
+			else
+				return ka < kb
+			end
 		end
 	end
-	return #a < #b
+	if reverse then
+		return #a > #b
+	else
+		return #a < #b
+	end
 end
 
 function M.block_sort(regex_str, opts)
@@ -36,7 +45,6 @@ function M.block_sort(regex_str, opts)
 	end
 
 	-- Determine range: visual selection or cursor-to-EOF
-	-- opts.range is 0 if no range, or a table {start, end} if range is provided
 	local start_line, end_line
 	if opts.range ~= 0 and type(opts.range) == "table" then
 		start_line = opts.range[1]
@@ -77,9 +85,10 @@ function M.block_sort(regex_str, opts)
 		table.insert(blocks, { header = header, body = body })
 	end
 
-	-- Sort blocks by header using the custom A-Z a-z 0-9 order
+	-- Sort blocks by header; reverse if opts.reverse is set
+	local reverse = opts.reverse or false
 	table.sort(blocks, function(a, b)
-		return compare_strings(a.header, b.header)
+		return compare_strings(a.header, b.header, reverse)
 	end)
 
 	-- Replace text from first match to end of range with sorted blocks
@@ -95,12 +104,13 @@ function M.block_sort(regex_str, opts)
 	vim.api.nvim_buf_set_lines(0, first_match - 1, end_line, false, new_lines)
 end
 
--- Register the command
+-- Register the command with bang support
 vim.api.nvim_create_user_command("BlockSort", function(opts)
-	M.block_sort(opts.args, opts)
+	M.block_sort(opts.args, { range = opts.range, reverse = opts.bang })
 end, {
 	nargs = 1,
 	range = true,
+	bang = true,
 })
 
 return M
